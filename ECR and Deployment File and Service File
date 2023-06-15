@@ -1,0 +1,52 @@
+---
+# tasks file for ubuntu
+- name: Pull ECR image
+  shell: $(aws ecr get-login --no-include-email --region us-east-1) && docker pull 680532354232.dkr.ecr.us-east-1.amazonaws.com/sarantask1:latest
+
+- name: Deploy NGINX Deployment
+  k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+        namespace: default
+        labels:
+          app: nginx
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+        spec:
+           containers:
+              - name: nginx
+                image: "680532354232.dkr.ecr.us-east-1.amazonaws.com/sarantask1:latest"
+                ports:
+                  - containerPort: 80
+           imagePullSecrets:
+              - name: regcred
+
+
+- name: Create NGINX Service
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: nginx-service
+        namespace: default
+      spec:
+        selector:
+          app: nginx
+        type: LoadBalancer
+        ports:
+          - protocol: TCP
+            port: 80
+            targetPort: 80
